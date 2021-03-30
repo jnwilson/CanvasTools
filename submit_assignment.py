@@ -25,7 +25,6 @@ import argparse
 import json
 import os
 import fnmatch
-import base64
 
 # I really don't do that requirements.txt thing
 # You'll probably have to pip3 install these:
@@ -39,10 +38,8 @@ def main():
     access_token = None
     assignment_id = None
     asst_entry = None
-    comment_response = None
     config = None
     response = None
-    score_column = 'Deductions'
 
     parser = argparse.ArgumentParser(description='Copy Rubric to student files')
     parser.add_argument('--config',
@@ -104,14 +101,8 @@ def main():
         f'Software version ({str(Software_Version)}) too low. ' \
         f'Config file requires {str(config_software_version)}'
 
-    ##
-    # read score column from config
-    if 'score_column' in config.keys():
-        score_column = config["score_column"]
-
-    score_label="Score"
-    if 'score_label' in config.keys():
-        score_label = config["score_label"]
+    score_column = config['score_column'] if 'score_column' in config.keys() else 'Deductions'
+    score_label = config['score_label'] if 'score_label' in config.keys() else 'Score'
 
     ##
     # read Canvas token from file
@@ -131,8 +122,6 @@ def main():
 
     headers = {'Content-Type': 'application/json',
                'Authorization': 'Bearer ' + access_token.rstrip()}
-
-
 
     ##
     # find assignment id
@@ -176,7 +165,7 @@ def main():
     submissions_response = requests.get(url=submissions_uri,
                                         headers=headers,
                                         params=params)
-    if (args.debug):
+    if args.debug:
         print(f'{submissions_uri}&{params}:{headers}')
     #    print(f'submissions_response.text:{submissions_response.text}')
     submissions = json.loads(submissions_response.text)
@@ -191,25 +180,15 @@ def main():
         print(f'--Working on {this_xlsx_filename}',
               flush=True)
 
-
         ##
         # create corresponding csv file
         try:
             this_xlsx = pandas.read_excel(this_xlsx_filename)
-            this_csv_filename = this_xlsx_filename.replace('.xlsx', '.csv')
-            this_xlsx.to_csv(this_csv_filename, index=None, header=True)
-            this_csv_file = open(this_csv_filename, 'r')
-            comment = this_csv_file.read()
-            print(f'comment is {comment}')
-            this_csv_file.close()
+
         except Exception as err:
-            print(f'* Cannot make csv file for [{this_xlsx_filename}]\n   {str(err)}',
+            print(f'* Cannot read excel file [{this_xlsx_filename}]\n   {str(err)}',
                   file=sys.stderr)
             continue
-
-        if args.debug:
-            print(f'**processing {this_csv_filename}',
-                  flush=True)
 
         ##
         # extract score from csv file
@@ -238,41 +217,27 @@ def main():
         # upload excel comments
         comment_upload_uri = f'{assignments_uri}{str(assignment_id)}/submissions/{str(student_canvas_id)}'
 
-
         if args.debug:
             print(f'**comment_upload_uri: {comment_upload_uri}',
                   flush=True)
-            print(f'**comment[text_comment]: {comment}',
-                  flush=True)
 
         if not args.n:
-        #    try:
-        #        print(f'comment is {comment}')
-        #        comment_response = requests.put(url=comment_upload_uri,
-        #                                        headers=headers,
-        #                                        params={'comment[text_comment]': comment})
-
-        #    except Exception as err:
-        #        print(f'* Could not attach comment [{comment_response.text}]\n   {str(err)}',
-        #              file=sys.stderr,
-        #              flush=True)
-        #        continue
             try:
                 upload_rq_params = {'name': this_xlsx_filename,
                                     'size': str(os.stat(this_xlsx_filename).st_size),
                                     'content_type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                                     'on_duplicate': 'overwrite'}
-                upload_rq_uri = f'{assignments_uri}{str(assignment_id)}/submissions/{str(student_canvas_id)}/comments/files/'
+                upload_rq_uri =\
+                    f'{assignments_uri}{str(assignment_id)}/submissions/{str(student_canvas_id)}/comments/files/'
                 upload_rq_response = requests.post(url=upload_rq_uri,
                                                    headers=headers,
                                                    params=upload_rq_params)
                 upload_rq = json.loads(upload_rq_response.text)
                 upload_uri = upload_rq['upload_url']
-                #upload_uri = upload_uri[0:upload_uri.rfind('?')]
 
                 do_upload_response = requests.post(url=upload_uri,
                                                    params=upload_rq['upload_params'],
-                                                   files={'file':open(this_xlsx_filename,'rb')})
+                                                   files={'file': open(this_xlsx_filename, 'rb')})
                 print(f'upload_uri is {upload_uri}')
                 print(f'upload_response is {do_upload_response} : {do_upload_response.text}')
                 do_upload = json.loads(do_upload_response.text)
@@ -281,27 +246,28 @@ def main():
                     confirmation_response = requests.post(url=do_upload['location'],
                                                           headers=headers,
                                                           params={'Content-Length': '0'})
-                elif int(do_upload_response.status_code/100) == 3:
+                else:
+                    assert int(do_upload_response.status_code/100) == 3, 'Erroneous status code from upload'
                     confirmation_response = requests.get(url=do_upload['location'])
+
                 print(f'confirmation response is {confirmation_response.text}')
 
                 confirmation = json.loads(confirmation_response.text)
                 comment_addfile = requests.put(url=comment_upload_uri,
                                                headers=headers,
-                                               params={'comment[file_ids][]':f'{str(confirmation["id"])}'})
-                print(f'comment_addfile " {commend_addfile.text}')
+                                               params={'comment[file_ids][]': f'{str(confirmation["id"])}'})
+                print(f'comment_addfile " {comment_addfile.text}')
 
             except Exception as err:
                 print(f'* Excel comment file upload failed]\n   {str(err)}',
                       file=sys.stderr,
                       flush=True)
 
-        exit(1)
-
         ##
         # find student id in submissions
         try:
-            assignment_entry = list(filter(lambda x: 'user_id' in x and x['user_id'] == int(student_canvas_id), submissions))
+            assignment_entry = list(filter(lambda x: 'user_id' in x and x['user_id'] == int(student_canvas_id),
+                                           submissions))
             last_entry = assignment_entry[-1]
         except Exception as err:
             print(f'* Could not find assignment entry for {this_xlsx_filename}\n   {str(err)}',
@@ -315,18 +281,12 @@ def main():
             print(f'**submission_id: {str(submission_id)}, attempt is {str(attempt)}',
                   flush=True)
 
-        ##
-        # post grade
-        #if attempt == None:
-        #    print(f'No submission for {this_xlsx_filename}')
-        #    continue
         for this_attempt in range(1, attempt+1):
             # Set all earlier attempts to 0 (to insure only one grade prevails
             # just in case use highest grade is set.
             # This is something people might want to change.
             this_score = 0 if this_attempt < attempt else score
             this_score = float(this_score)
-
 
             request_uri = submissions_uri + '/' + student_canvas_id
 
@@ -336,7 +296,7 @@ def main():
                 print(f'headers={headers}',
                       flush=True)
             if not args.n:
-                params = {'submission[posted_grade]':str(this_score)}
+                params = {'submission[posted_grade]': str(this_score)}
                 try:
                     response = requests.put(url=request_uri,
                                             headers=headers,
