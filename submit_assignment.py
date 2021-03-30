@@ -246,17 +246,57 @@ def main():
                   flush=True)
 
         if not args.n:
+        #    try:
+        #        print(f'comment is {comment}')
+        #        comment_response = requests.put(url=comment_upload_uri,
+        #                                        headers=headers,
+        #                                        params={'comment[text_comment]': comment})
+
+        #    except Exception as err:
+        #        print(f'* Could not attach comment [{comment_response.text}]\n   {str(err)}',
+        #              file=sys.stderr,
+        #              flush=True)
+        #        continue
             try:
-                print(f'comment is {comment}')
-                comment_response = requests.put(url=comment_upload_uri,
-                                                headers=headers,
-                                                params={'comment[text_comment]': comment})
-   #                                             params={'comment[text_comment]': 'abcde'})
+                upload_rq_params = {'name': this_xlsx_filename,
+                                    'size': str(os.stat(this_xlsx_filename).st_size),
+                                    'content_type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                    'on_duplicate': 'overwrite'}
+                upload_rq_uri = f'{assignments_uri}{str(assignment_id)}/submissions/{str(student_canvas_id)}/comments/files/'
+                upload_rq_response = requests.post(url=upload_rq_uri,
+                                                   headers=headers,
+                                                   params=upload_rq_params)
+                upload_rq = json.loads(upload_rq_response.text)
+                upload_uri = upload_rq['upload_url']
+                #upload_uri = upload_uri[0:upload_uri.rfind('?')]
+
+                do_upload_response = requests.post(url=upload_uri,
+                                                   params=upload_rq['upload_params'],
+                                                   files={'file':open(this_xlsx_filename,'rb')})
+                print(f'upload_uri is {upload_uri}')
+                print(f'upload_response is {do_upload_response} : {do_upload_response.text}')
+                do_upload = json.loads(do_upload_response.text)
+
+                if do_upload_response.status_code == 201:
+                    confirmation_response = requests.post(url=do_upload['location'],
+                                                          headers=headers,
+                                                          params={'Content-Length': '0'})
+                elif int(do_upload_response.status_code/100) == 3:
+                    confirmation_response = requests.get(url=do_upload['location'])
+                print(f'confirmation response is {confirmation_response.text}')
+
+                confirmation = json.loads(confirmation_response.text)
+                comment_addfile = requests.put(url=comment_upload_uri,
+                                               headers=headers,
+                                               params={'comment[file_ids][]':f'{str(confirmation["id"])}'})
+                print(f'comment_addfile " {commend_addfile.text}')
+
             except Exception as err:
-                print(f'* Could not attach comment [{comment_response.text}]\n   {str(err)}',
+                print(f'* Excel comment file upload failed]\n   {str(err)}',
                       file=sys.stderr,
                       flush=True)
-                continue
+
+        exit(1)
 
         ##
         # find student id in submissions
