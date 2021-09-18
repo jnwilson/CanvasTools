@@ -1,20 +1,20 @@
-#! /usr/bin/env python3
+#! /usr/bin/python3
 """
 submit_assignment.py
 
 Assumptions:
 
-   Excel files:
-       There is an excel file for each student that contains two specific columns
-       Category and Deductions
-       The student's score is in the Row having Category 'Score' in the Deductions column
+Excel files:
+There is an excel file for each student that contains two specific columns
+Category and Deductions
+The student's score is in the Row having Category 'Score' in the Deductions column
 
-       The excel filename has form   XXXXX######:??????.xlsx
-       where XXXXX is some representation of the student name,
-       ###### is the student's canvas_student_id, and
-       ?????? is the canvas_course_id in which the student is registered.
+The excel filename has form   XXXXX######:??????.xlsx
+where XXXXX is some representation of the student name,
+###### is the student's canvas_student_id, and
+?????? is the canvas_course_id in which the student is registered.
 
-    config file
+config file
         json dictionary with entries course_id and assignment_id
 
     API_token file
@@ -26,6 +26,7 @@ import argparse
 import json
 import os
 import fnmatch
+import re
 
 # I really don't do that requirements.txt thing
 # You'll probably have to pip3 install these:
@@ -159,7 +160,6 @@ def main():
         if not args.force and config_name != saved_config_name:
             if input(f'\nExercise name is: {exercise_name}\nConfigured name (Course {course_id}):  '
                      f'{config_name}\n\nContinue? [y/n] ') != 'y':
-
                 exit(1)
         saved_config_name = config_name
 
@@ -186,7 +186,7 @@ def main():
               flush=True)
 
         # identify course
-        this_course_id = this_xlsx_filename[this_xlsx_filename.find(':')+1:this_xlsx_filename.find('.xlsx')]
+        this_course_id = this_xlsx_filename[this_xlsx_filename.find(':') + 1:this_xlsx_filename.find('.xlsx')]
         if args.debug:
             print(f'this_course_id:{this_course_id}',
                   file=sys.stderr)
@@ -204,13 +204,13 @@ def main():
         # extract score from csv file
         try:
             score = -1
-            for row_ind in range(len(this_xlsx)-1, -1, -1):
+            for row_ind in range(len(this_xlsx) - 1, -1, -1):
                 if this_xlsx.at[row_ind, list(this_xlsx)[0]] == score_label:
                     score = this_xlsx.at[row_ind, score_column]
                     print(f'Score is {score}')
                     if 'factor' in config.keys():
-                        score = score*config['factor']
-            assert(score != -1)
+                        score = score * config['factor']
+            assert (score != -1)
         except Exception as err:
             print(f'* Score not found for [{this_xlsx_filename}]\n   {err}',
                   file=sys.stderr,
@@ -219,7 +219,8 @@ def main():
 
         ##
         # grab Canvas student ID from filename
-        this_sid = this_xlsx_filename[this_xlsx_filename.find(':')-7:this_xlsx_filename.find(':')]
+
+        this_sid = this_xlsx_filename[re.search(r'\d', this_xlsx_filename).start():this_xlsx_filename.find(':')]
         if args.debug:
             print(f'**student_canvas_id: {this_sid}',
                   file=sys.stderr,
@@ -227,7 +228,7 @@ def main():
 
         ##
         # upload excel comments
-        comment_upload_uri = f'{assignment_uri_base}{this_course_id}/assignments/' +\
+        comment_upload_uri = f'{assignment_uri_base}{this_course_id}/assignments/' + \
                              f'{assignment_id_map[this_course_id]}/submissions/{this_sid}'
 
         if args.debug:
@@ -250,7 +251,7 @@ def main():
                                         'size': str(os.stat(this_xlsx_filename).st_size),
                                         'content_type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                                         'on_duplicate': 'overwrite'}
-                    upload_rq_uri =\
+                    upload_rq_uri = \
                         f'{comment_upload_uri}/comments/files/'
                     upload_rq_response = requests.post(url=upload_rq_uri,
                                                        headers=headers,
@@ -289,7 +290,7 @@ def main():
                                                           headers=headers,
                                                           params={'Content-Length': '0'})
                 else:
-                    assert int(do_upload_response.status_code/100) == 3, 'Erroneous status code from upload'
+                    assert int(do_upload_response.status_code / 100) == 3, 'Erroneous status code from upload'
                     confirmation_response = requests.get(url=do_upload['location'])
                 if args.debug:
                     print(f'confirmation response is {confirmation_response.text}',
@@ -339,7 +340,7 @@ def main():
                   file=sys.stderr,
                   flush=True)
             continue
-        for this_attempt in range(1, attempt+1):
+        for this_attempt in range(1, attempt + 1):
             ##
             # Set all earlier attempts to 0 (to insure only one grade prevails
             # just in case use highest grade is set.
