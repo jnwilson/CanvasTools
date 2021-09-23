@@ -1,4 +1,16 @@
 #! /usr/bin/env python3
+# noinspection SpellCheckingInspection
+"""
+copyrubric.py
+
+Assumptions:
+  0. You use the Canvas LMS for a class or several classes you are teaching or assisting with.
+  1. The current directory where you are running this is a grades directory.
+  2. You have a grading rubric .xlsx file (preferably in some other directory).
+  3. You have a rollfile each \n separated line of which is of form lastname_firstnameXXXXX:YYYYY
+     (where XXXXX is Canvas Student ID and YYYYY is Canvas Course ID)
+     for every student in the class or classes for which you are grading.
+"""
 
 import sys
 import argparse
@@ -7,9 +19,9 @@ import shutil
 
 def main():
     parser = argparse.ArgumentParser(description='Copy Rubric to student files')
-    parser.add_argument('--students',
-                        help='file containing student names and Canvs ID (comma separated)',
-                        default='../student-file')
+    parser.add_argument('--rollfile',
+                        help='file containing lname_fnameXXXX:YYYY where XXXX is Student ID and YYYY is Course ID',
+                        default='../rollfile')
 
     parser.add_argument('--rubric',
                         help="rubric xlsx file for assignment",
@@ -20,15 +32,16 @@ def main():
     ##
     # read student file
     try:
-        student_file = open(args.students, 'r')
+        with open(args.rollfile, 'r') as f:
+            student_list = f.readlines()
+            f.close()
     except Exception as err:
-        print(f'Unable to open student file: [{args.students}]: {str(err)}',
+        print(f'Unable to open roll file: [{args.rollfile}]: {str(err)}',
               file=sys.stderr,
               flush=True)
         exit(1)
 
     # noinspection PyUnboundLocalVariable
-    student_list = student_file.readlines()
     for entry in student_list:
         new_filename = entry.rstrip() + '.xlsx'
         try:
