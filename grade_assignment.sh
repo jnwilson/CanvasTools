@@ -16,11 +16,14 @@
 # After grading an asignment use submit_assignment.py to submit grades to canvas
 #
 
+Opener=open
+if [ uname eq Linux ]; then Opener=xdg-open; fi
+
 for x in *.xlsx; do
     base=${x/:*/}
     pdf=$base*.pdf
-    if [ -e $base*.pdf ]; then open $base*.pdf; \
-    else if [ -e $base*.docx ]; then open $base*.docx; fi; fi
+    if [ -e $base*.pdf ]; then $Opener $base*.pdf; \
+    else if [ -e $base$.docx ]; then $Opener $base*.docx; fi; fi
     open "$x"
     read
     done
