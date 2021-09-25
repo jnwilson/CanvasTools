@@ -24,7 +24,7 @@ for x in *.xlsx; do
     pdf=$base*.pdf
     if [ -e $base*.pdf ]; then $Opener $base*.pdf; \
     else if [ -e $base$.docx ]; then $Opener $base*.docx; fi; fi
-    open "$x"
+    $Opener "$x"
     read
     done
     
