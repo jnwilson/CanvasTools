@@ -17,7 +17,7 @@
 #
 
 Opener=open
-if [ uname eq Linux ]; then Opener=xdg-open; fi
+if [ `uname` == Linux ]; then Opener=xdg-open; fi
 
 for x in *.xlsx; do
     base=${x/:*/}
