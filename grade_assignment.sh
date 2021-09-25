@@ -1,4 +1,4 @@
-#! /usr/bin/env sh -x
+#! /usr/bin/env bash
 #
 # grade_assignment.sh
 #
