@@ -3,9 +3,9 @@
 # grade_assignment.sh
 #
 # Assumes directory contains downloaded canvas assignment pdf file with filenames of form
-#    lastname_firstnameXXXXXX_question_######_#######_assignmentname.pdf
+#    lastnamefirstname_XXXXXX_question_######_#######_assignmentname.pdf
 # and .xlsx grading spreadsheets with filenames of form
-#    lastname_firstnameXXXXXX:YYYYYY.xlsx
+#    lastnamefirstname_XXXXXX:YYYYYY.xlsx
 # where XXXXXX is the Canvas Student ID and
 # YYYYYY is the Canvas Course Shell ID
 #
@@ -19,7 +19,9 @@
 Opener=open
 if [ `uname` == Linux ]; then Opener=xdg-open; fi
 
-for x in *.xlsx; do
+for x in *_*:*.xlsx; do
+    cmp $x rubric.xlsx >/dev/null
+    if [ $? != 0 ]; then continue; fi
     base=${x/:*/}
     pdf=$base*.pdf
     if [ -e $base*.pdf ]; then $Opener $base*.pdf; \
