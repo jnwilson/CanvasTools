@@ -41,13 +41,16 @@ def main():
     asst_entry = None
     config = None
 
-    parser = argparse.ArgumentParser(description='Copy Rubric to student files')
+    parser = argparse.ArgumentParser(description='Submit a graded Canvas assignment')
     parser.add_argument('--config',
                         help='file containing config info',
                         default=None)
     parser.add_argument('--token',
                         help='Canvas Access Token File',
                         default='../API_token')
+    parser.add_argument('-comments_only',
+                       help='Only submit comments -- no grades',
+                       action='store_true')
     parser.add_argument('-debug',
                         help='Set verbose debugging mode',
                         action='store_true')
@@ -59,21 +62,6 @@ def main():
                         action='store_true')
 
     args = parser.parse_args()
-
-    ##
-    # read config file
-    #
-    # json config file example
-    #
-    # {"software_version": 0.5,
-    #  "assignment_name": "P0x01",
-    #  "score_column": "Total",
-    #  "quiz_ids": {"435962": "1003214",
-    #               "435963": "1027554",
-    #               "435964": "1027615"}
-
-    ##
-    # grab config filename if not set
 
     if not args.config:
         config_file = fnmatch.filter(os.listdir('.'), 'config*')
@@ -138,12 +126,21 @@ def main():
         if args.debug:
             print(f'assignments_uri:{assignments_uri}:{headers}',
                   file=sys.stderr)
+            # print(f'assignments:{assignments}')
         try:
             if args.debug:
                 print(f'config["assignment_map[course_id]"] is {assignment_map[course_id]}',
                       flush=True)
+            quiz_assignment=True
             asst_entry = list(filter(lambda x: 'quiz_id' in x and str(x['quiz_id']) == assignment_map[course_id],
                                      assignments))
+            if args.debug:
+                print(f'asst_entry (quizzes):{asst_entry}')
+            if not asst_entry:
+                asst_entry = list(filter(lambda x: 'id' in x and str(x['id']) == assignment_map[course_id], assignments))
+                quiz_assignment=False
+                if args.debug:
+                    print(f'asst_entry (assignments):{asst_entry}')
             assignment_id_map[course_id] = asst_entry[0]["id"]
         except Exception as err:
             print(f'* Could not find assignment {assignment_map[course_id]} in course {course_id}\n   {err}',
@@ -202,20 +199,21 @@ def main():
 
         ##
         # extract score from csv file
-        try:
-            score = -1
-            for row_ind in range(len(this_xlsx) - 1, -1, -1):
-                if this_xlsx.at[row_ind, list(this_xlsx)[0]] == score_label:
-                    score = this_xlsx.at[row_ind, score_column]
-                    print(f'Score is {score}')
+        if not args.comments_only:
+            try:
+                score = -1
+                for row_ind in range(len(this_xlsx) - 1, -1, -1):
+                    if this_xlsx.at[row_ind, list(this_xlsx)[0]] == score_label:
+                        score = this_xlsx.at[row_ind, score_column]
+                        print(f'Score is {score}')
                     if 'factor' in config.keys():
                         score = score * config['factor']
-            assert (score != -1)
-        except Exception as err:
-            print(f'* Score not found for [{this_xlsx_filename}]\n   {err}',
-                  file=sys.stderr,
-                  flush=True)
-            continue
+                assert (score != -1)
+            except Exception as err:
+                print(f'* Score not found for [{this_xlsx_filename}]\n   {err}',
+                      file=sys.stderr,
+                      flush=True)
+                continue
 
         ##
         # grab Canvas student ID from filename
@@ -312,6 +310,13 @@ def main():
                 print(f'* Excel comment file upload failed]\n   {err}',
                       file=sys.stderr,
                       flush=True)
+
+        # if only commenting, skip the rest
+        if args.comments_only:
+            continue
+
+        ##
+        # Now upload the grade
 
         ##
         # find student id in submissions
