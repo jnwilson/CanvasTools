@@ -7,7 +7,7 @@ import codecs
 
 def main():
     # set up arguments
-    parser = argparse.ArgumentParser('Create Grading Roll')
+    parser = argparse.ArgumentParser('Create Grading Roll from Canvas grading file')
     parser.add_argument('--csvfile',
                         required=True,
                         help='path to Canvas grading csv file')
@@ -28,11 +28,9 @@ def main():
     next(reader)
     next(reader)
 
-    # send account email to each user in csv file
     for row in reader:
         raw_name = row[0]
-        print(raw_name)
-        processed_name = raw_name.lower().replace(', ', '')
+        processed_name = raw_name.lower().replace(', ', '_')
         processed_name = processed_name.replace(' ', '')
         processed_name = f'{processed_name}_{row[1]}:{args.course_id}'
         print(processed_name)
