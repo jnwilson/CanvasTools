@@ -31,9 +31,10 @@ def main():
     # send account email to each user in csv file
     for row in reader:
         raw_name = row[0]
-        processed_name = raw_name.lower().replace(', ', '_')
-        processed_name = processed_name.replace(' ', '_')
-        processed_name = processed_name + row[1] + ':' + args.course_id
+        print(raw_name)
+        processed_name = raw_name.lower().replace(', ', '')
+        processed_name = processed_name.replace(' ', '')
+        processed_name = f'{processed_name}_{row[1]}:{args.course_id}'
         print(processed_name)
 
     csv_file.close()
