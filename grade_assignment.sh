@@ -20,7 +20,7 @@ Opener=open
 if [ `uname` == Linux ]; then Opener=xdg-open; fi
 
 for x in *_*:*.xlsx; do
-    cmp $x rubric.xlsx >/dev/null
+    cmp $x rubric*.xlsx >/dev/null
     if [ $? != 0 ]; then continue; fi
     base=${x/:*/}
     base1=${base/_*/}
