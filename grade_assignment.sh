@@ -1,4 +1,4 @@
-#! /usr/bin/env bash
+#! /usr/bin/env bash -x
 #
 # grade_assignment.sh
 #
@@ -23,9 +23,14 @@ for x in *_*:*.xlsx; do
     cmp $x rubric.xlsx >/dev/null
     if [ $? != 0 ]; then continue; fi
     base=${x/:*/}
-    pdf=$base*.pdf
-    if [ -e $base*.pdf ]; then $Opener $base*.pdf; \
-    else if [ -e $base$.docx ]; then $Opener $base*.docx; fi; fi
+    base1=${base/_*/}
+    base2=${base/*_/}
+    # get just 1 pdf file name in $pdf in case there are extras
+    pdf=`ls $base1*$base2*.pdf`
+    pdf=${pdf/pdf*/pdf}
+    #for pdf in `ls $base1*$base2*.pdf`; do break; done
+    if [ -e "$pdf" ]; then $Opener "$pdf"; \
+    else if [ -e "$base1*$base2*.docx" ]; then $Opener "$base1*$base2*.docx"; fi; fi
     $Opener "$x"
     read
     done
