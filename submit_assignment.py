@@ -110,8 +110,6 @@ def main():
 
     headers = {'Content-Type': 'application/json',
                'Authorization': 'Bearer ' + access_token.rstrip()}
-    submissions_uri_map = {}
-    submissions_map = {}
     assignment_id_map = {}
     saved_config_name = ''
 
@@ -161,18 +159,18 @@ def main():
         saved_config_name = config_name
 
         ##
-        # get assignment submissions
-        submissions_uri_map[course_id] = f'{assignments_uri}/{assignment_id_map[course_id]}/submissions'
+        # Actually,  DON'T get assignment submissions
+        # submissions_uri_map[course_id] = f'{assignments_uri}/{assignment_id_map[course_id]}/submissions'
 
-        params = {'per_page': '500'}
-        submissions_response = requests.get(url=submissions_uri_map[course_id],
-                                            headers=headers,
-                                            params=params)
-        if args.debug:
-            print(f'{submissions_uri_map[course_id]}&{params}:{headers}',
-                  file=sys.stderr)
+        # params = {'per_page': '5000'}
+        # submissions_response = requests.get(url=submissions_uri_map[course_id],
+        #                                     headers=headers,
+        #                                     params=params)
+        # if args.debug:
+        #     print(f'{submissions_uri_map[course_id]}&{params}:{headers}',
+        #           file=sys.stderr)
 
-        submissions_map[course_id] = json.loads(submissions_response.text)
+        # submissions_map[course_id] = json.loads(submissions_response.text)
 
     ##
     # Upload each student's xlsx file.
@@ -319,14 +317,15 @@ def main():
         # Now upload the grade
 
         ##
-        # find student id in submissions
+        # find this student's submission
         try:
-            assignment_entry = list(filter(lambda x: 'user_id' in x and x['user_id'] == int(this_sid),
-                                           submissions_map[this_course_id]))
-            last_entry = assignment_entry[-1]
+            this_submission_uri = f'{assignments_uri}/{assignment_id_map[course_id]}/submissions/{this_sid}'
+            this_submission_response = requests.get(url=this_submission_uri,
+                                            headers=headers)
+            assignment_entry = json.loads(this_submission_response.text)
         except Exception as err:
             if args.debug:
-                print(f'submissions_map[{this_course_id}]: {submissions_map[this_course_id]}',
+                print(f'assignment_entry: {assignment_entry}',
                       file=sys.stderr)
             print(f'* Could not find assignment entry for {this_xlsx_filename}\n   {err}',
                   file=sys.stderr,
@@ -334,8 +333,8 @@ def main():
             continue
         ##
         # Find assignment attempts
-        submission_id = last_entry["id"]
-        attempt = last_entry["attempt"]
+        submission_id = assignment_entry["id"]
+        attempt = assignment_entry["attempt"]
         if args.debug:
             print(f'**submission_id: {submission_id}, attempt is {attempt}',
                   file=sys.stderr,
@@ -355,16 +354,16 @@ def main():
 
             ##
             # Set posted grade for this assignment
-            request_uri = submissions_uri_map[this_course_id] + '/' + this_sid
+            submission_uri= f'{assignments_uri}/{assignment_id_map[course_id]}/submissions/{this_sid}'
 
             if args.debug:
-                print(f'**request_uri {request_uri}\n  headers={headers}',
+                print(f'**request_uri {submission_uri}\n  headers={headers}',
                       file=sys.stderr,
                       flush=True)
             if not args.n:
                 params = {'submission[posted_grade]': str(this_score)}
                 try:
-                    response = requests.put(url=request_uri,
+                    response = requests.put(url=submissions_uri,
                                             headers=headers,
                                             params=params)
                     if this_attempt == attempt:
