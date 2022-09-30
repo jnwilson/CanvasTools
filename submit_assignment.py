@@ -203,7 +203,8 @@ def main():
                 for row_ind in range(len(this_xlsx) - 1, -1, -1):
                     if this_xlsx.at[row_ind, list(this_xlsx)[0]] == score_label:
                         score = this_xlsx.at[row_ind, score_column]
-                        print(f'Score is {score}')
+                        print(f'Score is {score}',
+                              flush=True)
                     if 'factor' in config.keys():
                         score = score * config['factor']
                 assert (score != -1)
@@ -222,8 +223,78 @@ def main():
                   file=sys.stderr,
                   flush=True)
 
+        if not args.comments_only:
+            ##
+            # First, try to upload the grade
+
+            ##
+            # find this student's submission
+            try:
+                this_submission_uri = f'{assignments_uri}/{assignment_id_map[course_id]}/submissions/{this_sid}'
+                this_submission_response = requests.get(url=this_submission_uri,
+                                                        headers=headers)
+                assignment_entry = json.loads(this_submission_response.text)
+            except Exception as err:
+                if args.debug:
+                    print(f'assignment_entry: {assignment_entry}',
+                          file=sys.stderr,
+                          flush=True)
+                print(f'\n*** Could not find assignment entry for {this_xlsx_filename}\n   {err}\n',
+                      file=sys.stderr,
+                      flush=True)
+                continue
+
+            ##
+            # Find assignment attempts
+            submission_id = assignment_entry["id"]
+            attempt = assignment_entry["attempt"]
+            if args.debug:
+                print(f'**submission_id: {submission_id}, attempt is {attempt}',
+                      file=sys.stderr,
+                      flush=True)
+            if attempt is None:
+                print(f'\n*** No attempts by this student {this_xlsx_filename}\n ',
+                      file=sys.stderr,
+                      flush=True)
+                continue
+            for this_attempt in range(1, attempt + 1):
+                ##
+                # Set all earlier attempts to 0 (to insure only one grade prevails
+                # just in case use highest grade is set.
+                # This is something people might want to change.
+                this_score = 0 if this_attempt < attempt else score
+                this_score = float(this_score)
+
+                ##
+                # Set posted grade for this assignment
+                submission_uri = f'{assignments_uri}/{assignment_id_map[course_id]}/submissions/{this_sid}'
+
+                if args.debug:
+                    print(f'**request_uri {submission_uri}\n  headers={headers}',
+                          file=sys.stderr,
+                          flush=True)
+                if not args.n:
+                    params = {'submission[posted_grade]': str(this_score)}
+                    try:
+                        response = requests.put(url=submissions_uri,
+                                                headers=headers,
+                                                params=params)
+                        if this_attempt == attempt:
+                            print(f'request: {request_uri}:{params}')
+                            print(f'Uploaded grade {this_score} for {this_xlsx_filename}',
+                                  flush=True)
+                    except Exception as err:
+                        # noinspection PyUnboundLocalVariable
+                        print(f'**http request failed {request_uri}\nresponse: {response.text}\n   {err}',
+                              file=sys.stderr,
+                              flush=True)
+                else:
+                    if this_attempt == attempt:
+                        print(f'***No action for {this_xlsx_filename}',
+                              flush=True)
+
         ##
-        # upload excel comments
+        # Now upload excel comments
         comment_upload_uri = f'{assignment_uri_base}{this_course_id}/assignments/' + \
                              f'{assignment_id_map[this_course_id]}/submissions/{this_sid}'
 
@@ -309,76 +380,7 @@ def main():
                       file=sys.stderr,
                       flush=True)
 
-        # if only commenting, skip the rest
-        if args.comments_only:
-            continue
 
-        ##
-        # Now upload the grade
-
-        ##
-        # find this student's submission
-        try:
-            this_submission_uri = f'{assignments_uri}/{assignment_id_map[course_id]}/submissions/{this_sid}'
-            this_submission_response = requests.get(url=this_submission_uri,
-                                            headers=headers)
-            assignment_entry = json.loads(this_submission_response.text)
-        except Exception as err:
-            if args.debug:
-                print(f'assignment_entry: {assignment_entry}',
-                      file=sys.stderr)
-            print(f'* Could not find assignment entry for {this_xlsx_filename}\n   {err}',
-                  file=sys.stderr,
-                  flush=True)
-            continue
-        ##
-        # Find assignment attempts
-        submission_id = assignment_entry["id"]
-        attempt = assignment_entry["attempt"]
-        if args.debug:
-            print(f'**submission_id: {submission_id}, attempt is {attempt}',
-                  file=sys.stderr,
-                  flush=True)
-        if attempt is None:
-            print(f'**No attempts by this student',
-                  file=sys.stderr,
-                  flush=True)
-            continue
-        for this_attempt in range(1, attempt + 1):
-            ##
-            # Set all earlier attempts to 0 (to insure only one grade prevails
-            # just in case use highest grade is set.
-            # This is something people might want to change.
-            this_score = 0 if this_attempt < attempt else score
-            this_score = float(this_score)
-
-            ##
-            # Set posted grade for this assignment
-            submission_uri= f'{assignments_uri}/{assignment_id_map[course_id]}/submissions/{this_sid}'
-
-            if args.debug:
-                print(f'**request_uri {submission_uri}\n  headers={headers}',
-                      file=sys.stderr,
-                      flush=True)
-            if not args.n:
-                params = {'submission[posted_grade]': str(this_score)}
-                try:
-                    response = requests.put(url=submissions_uri,
-                                            headers=headers,
-                                            params=params)
-                    if this_attempt == attempt:
-                        print(f'request: {request_uri}:{params}')
-                        print(f'Uploaded grade {this_score} for {this_xlsx_filename}',
-                              flush=True)
-                except Exception as err:
-                    # noinspection PyUnboundLocalVariable
-                    print(f'**http request failed {request_uri}\nresponse: {response.text}\n   {err}',
-                          file=sys.stderr,
-                          flush=True)
-            else:
-                if this_attempt == attempt:
-                    print(f'No action for {this_xlsx_filename}',
-                          flush=True)
 
     if args.n:
         print('No upload actions actually performed',
