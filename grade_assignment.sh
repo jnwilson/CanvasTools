@@ -1,4 +1,4 @@
-#! /usr/bin/env bash -x
+#! /usr/bin/env bash
 #
 # grade_assignment.sh
 #
@@ -19,10 +19,10 @@
 Opener=open
 if [ `uname` == Linux ]; then Opener=xdg-open; fi
 
-for x in *_*:*.xlsx; do
+for x in *_*-*.xlsx; do
     cmp $x rubric*.xlsx >/dev/null
     if [ $? != 0 ]; then continue; fi
-    base=${x/:*/}
+    base=${x/-*/}
     base1=${base/_*/}
     base2=${base/*_/}
     # get just 1 pdf file name in $pdf in case there are extras
