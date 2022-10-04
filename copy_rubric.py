@@ -43,7 +43,8 @@ def main():
 
     # noinspection PyUnboundLocalVariable
     for entry in student_list:
-        new_filename = entry.rstrip() + '.xlsx'
+        colon_index = entry.find(':')
+        new_filename = entry[:colon_index] + '-' + entry[colon_index+1:].rstrip() + '.xlsx'
         try:
             shutil.copy2(args.rubric, new_filename)
             print(new_filename.rstrip())
