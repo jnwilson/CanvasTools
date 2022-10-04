@@ -174,14 +174,14 @@ def main():
 
     ##
     # Upload each student's xlsx file.
-    excel_files = fnmatch.filter(os.listdir('.'), '*:*.xlsx')
+    excel_files = fnmatch.filter(os.listdir('.'), '*-*.xlsx')
 
     for this_xlsx_filename in excel_files:
-        print(f'--Working on {this_xlsx_filename}',
+        print(f'Working on {this_xlsx_filename}',
               flush=True)
 
         # identify course
-        this_course_id = this_xlsx_filename[this_xlsx_filename.find(':') + 1:this_xlsx_filename.find('.xlsx')]
+        this_course_id = this_xlsx_filename[this_xlsx_filename.find('.') + 1:this_xlsx_filename.find('.xlsx')]
         if args.debug:
             print(f'this_course_id:{this_course_id}',
                   file=sys.stderr)
@@ -203,8 +203,9 @@ def main():
                 for row_ind in range(len(this_xlsx) - 1, -1, -1):
                     if this_xlsx.at[row_ind, list(this_xlsx)[0]] == score_label:
                         score = this_xlsx.at[row_ind, score_column]
-                        print(f'Score is {score}',
-                              flush=True)
+                        if args.debug:
+                            print(f'Score is {score}',
+                                  flush=True)
                     if 'factor' in config.keys():
                         score = score * config['factor']
                 assert (score != -1)
@@ -217,7 +218,7 @@ def main():
         ##
         # grab Canvas student ID from filename
 
-        this_sid = this_xlsx_filename[re.search(r'\d', this_xlsx_filename).start():this_xlsx_filename.find(':')]
+        this_sid = this_xlsx_filename[re.search(r'\d', this_xlsx_filename).start():this_xlsx_filename.find('-')]
         if args.debug:
             print(f'**student_canvas_id: {this_sid}',
                   file=sys.stderr,
@@ -270,18 +271,19 @@ def main():
                 submission_uri = f'{assignments_uri}/{assignment_id_map[course_id]}/submissions/{this_sid}'
 
                 if args.debug:
-                    print(f'**request_uri {submission_uri}\n  headers={headers}',
+                    print(f'**submission_uri {submission_uri}\n  headers={headers}',
                           file=sys.stderr,
                           flush=True)
                 if not args.n:
                     params = {'submission[posted_grade]': str(this_score)}
                     try:
-                        response = requests.put(url=submissions_uri,
+                        response = requests.put(url=submission_uri,
                                                 headers=headers,
                                                 params=params)
                         if this_attempt == attempt:
-                            print(f'request: {request_uri}:{params}')
-                            print(f'Uploaded grade {this_score} for {this_xlsx_filename}',
+                            if args.debug:
+                                print(f'request: {submission_uri}:{params}')
+                            print(f'  Uploaded grade {this_score} for {this_xlsx_filename}',
                                   flush=True)
                     except Exception as err:
                         # noinspection PyUnboundLocalVariable
@@ -295,8 +297,7 @@ def main():
 
         ##
         # Now upload excel comments
-        comment_upload_uri = f'{assignment_uri_base}{this_course_id}/assignments/' + \
-                             f'{assignment_id_map[this_course_id]}/submissions/{this_sid}'
+        comment_upload_uri =  f"{assignments_uri}/{assignment_id_map[course_id]}/submissions/{this_sid}"
 
         if args.debug:
             print(f'**comment_upload_uri: {comment_upload_uri}',
