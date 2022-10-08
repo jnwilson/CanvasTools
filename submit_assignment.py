@@ -218,7 +218,7 @@ def main():
         ##
         # grab Canvas student ID from filename
 
-        this_sid = this_xlsx_filename[re.search(r'\d', this_xlsx_filename).start():this_xlsx_filename.find('-')]
+        this_sid = this_xlsx_filename[re.search(r'\d', this_xlsx_filename).start():this_xlsx_filename.rfind('-')]
         if args.debug:
             print(f'**student_canvas_id: {this_sid}',
                   file=sys.stderr,
