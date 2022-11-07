@@ -129,14 +129,12 @@ def main():
             if args.debug:
                 print(f'config["assignment_map[course_id]"] is {assignment_map[course_id]}',
                       flush=True)
-            quiz_assignment=True
             asst_entry = list(filter(lambda x: 'quiz_id' in x and str(x['quiz_id']) == assignment_map[course_id],
                                      assignments))
             if args.debug:
                 print(f'asst_entry (quizzes):{asst_entry}')
             if not asst_entry:
                 asst_entry = list(filter(lambda x: 'id' in x and str(x['id']) == assignment_map[course_id], assignments))
-                quiz_assignment=False
                 if args.debug:
                     print(f'asst_entry (assignments):{asst_entry}')
             assignment_id_map[course_id] = asst_entry[0]["id"]
@@ -210,7 +208,8 @@ def main():
                         score = score * config['factor']
                 assert (score != -1)
             except Exception as err:
-                print(f'* Score not found for [{this_xlsx_filename}]\n   {err}',
+                print(f'* Score not found for [{this_xlsx_filename}]\n   {err}\n'
+                      f'Looking for column header "{score_column}" and row header "{score_label}"',
                       file=sys.stderr,
                       flush=True)
                 continue
@@ -230,6 +229,7 @@ def main():
 
             ##
             # find this student's submission
+            assignment_entry = '**unassigned**'
             try:
                 this_submission_uri = f'{assignments_uri}/{assignment_id_map[course_id]}/submissions/{this_sid}'
                 this_submission_response = requests.get(url=this_submission_uri,
