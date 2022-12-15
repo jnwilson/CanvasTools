@@ -19,11 +19,13 @@
 Opener=open
 if [ `uname` == Linux ]; then Opener=xdg-open; fi
 
+#!!! Possibly delete commas from filenames for the benefit of WSL
+
 for x in *_*-*.xlsx; do
     cmp $x rubric*.xlsx >/dev/null
     if [ $? != 0 ]; then continue; fi
-    base=${x/-*/}
-    base1=${base/_*/}
+    base=${x/%-*}
+    base1=${base/_*/}    
     base2=${base/*_/}
     # get just 1 pdf file name in $pdf in case there are extras
     pdf=`ls $base1*$base2*.pdf`
