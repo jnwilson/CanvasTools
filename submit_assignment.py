@@ -60,6 +60,9 @@ def main():
     parser.add_argument('-n',
                         help='Dry run: do everything but submit grades',
                         action='store_true')
+    parser.add_argument('--separator',
+                        help='separator to use between SIS and course number',
+                        default='-')
 
     args = parser.parse_args()
 
@@ -172,7 +175,7 @@ def main():
 
     ##
     # Upload each student's xlsx file.
-    excel_files = fnmatch.filter(os.listdir('.'), '*-*.xlsx')
+    excel_files = fnmatch.filter(os.listdir('.'), f'*{args.separator}*.xlsx')
 
     for this_xlsx_filename in excel_files:
         print(f'Working on {this_xlsx_filename}',
@@ -217,7 +220,7 @@ def main():
         ##
         # grab Canvas student ID from filename
 
-        this_sid = this_xlsx_filename[re.search(r'\d', this_xlsx_filename).start():this_xlsx_filename.rfind('-')]
+        this_sid = this_xlsx_filename[re.search(r'\d', this_xlsx_filename).start():this_xlsx_filename.rfind(args.separator)]
         if args.debug:
             print(f'**student_canvas_id: {this_sid}',
                   file=sys.stderr,

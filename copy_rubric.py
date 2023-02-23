@@ -26,7 +26,10 @@ def main():
     parser.add_argument('--rubric',
                         help="rubric xlsx file for assignment",
                         default='rubric.xlsx')
-
+    parser.add_argument('--separator',
+                        help='separator to use between SIS and course number',
+                        default='-')
+    
     args = parser.parse_args()
 
     ##
@@ -44,7 +47,7 @@ def main():
     # noinspection PyUnboundLocalVariable
     for entry in student_list:
         colon_index = entry.find(':')
-        new_filename = entry[:colon_index] + '-' + entry[colon_index+1:].rstrip() + '.xlsx'
+        new_filename = entry[:colon_index] + args.separator + entry[colon_index+1:].rstrip() + '.xlsx'
         try:
             shutil.copy2(args.rubric, new_filename)
             print(new_filename.rstrip())
