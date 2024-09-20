@@ -5,17 +5,22 @@ submit_assignment.py
 Assumptions:
 
 Excel files:
-There is an excel file for each student that contains two specific columns
-Category and Deductions
-The student's score is in the Row having Category 'Score' in the Deductions column
+There is an excel file for each student with a score_label and a score_column
 
-The excel filename has form   XXXXX######:??????.xlsx
-where XXXXX is some representation of the student name,
-###### is the student's canvas_student_id, and
-?????? is the canvas_course_id in which the student is registered.
+    The names of the column and the first entry in the score row
+    are either default (Deductions and Score, resp.) or given by
+    the appropriate entries in the config file
+
+    The student's score for the assignment score_row, score_column entry
+
+The excel filenames have form   NNNN-SSSS-CCCC.xlsx
+where NNNN is some representation of the student name and course number,
+SSSS is the student's canvas_student_id, and
+CCCC is the canvas_course_id in which the student is registered.
 
 config file
         json dictionary with entries course_id and assignment_id
+        and possibly having entries score_column and score_label
 
     API_token file
         Canvas API token is stored in a file (default name: API_token)
@@ -60,9 +65,6 @@ def main():
     parser.add_argument('-n',
                         help='Dry run: do everything but submit grades',
                         action='store_true')
-    parser.add_argument('--separator',
-                        help='separator to use between SIS and course number',
-                        default='-')
 
     args = parser.parse_args()
 
@@ -175,7 +177,7 @@ def main():
 
     ##
     # Upload each student's xlsx file.
-    excel_files = fnmatch.filter(os.listdir('.'), f'*{args.separator}*.xlsx')
+    excel_files = fnmatch.filter(os.listdir('.'), '*-*.xlsx')
 
     for this_xlsx_filename in excel_files:
         print(f'Working on {this_xlsx_filename}',
@@ -220,7 +222,7 @@ def main():
         ##
         # grab Canvas student ID from filename
 
-        this_sid = this_xlsx_filename[re.search(r'\d', this_xlsx_filename).start():this_xlsx_filename.rfind(args.separator)]
+        this_sid = this_xlsx_filename[re.search(r'\d', this_xlsx_filename).start():this_xlsx_filename.rfind('-')]
         if args.debug:
             print(f'**student_canvas_id: {this_sid}',
                   file=sys.stderr,
@@ -234,6 +236,7 @@ def main():
             # find this student's submission
             assignment_entry = '**unassigned**'
             try:
+                # noinspection PyUnboundLocalVariable
                 this_submission_uri = f'{assignments_uri}/{assignment_id_map[course_id]}/submissions/{this_sid}'
                 this_submission_response = requests.get(url=this_submission_uri,
                                                         headers=headers)
@@ -266,6 +269,7 @@ def main():
                 # Set all earlier attempts to 0 (to insure only one grade prevails
                 # just in case use highest grade is set.
                 # This is something people might want to change.
+                # noinspection PyUnboundLocalVariable
                 this_score = 0 if this_attempt < attempt else score
                 this_score = float(this_score)
 
@@ -295,7 +299,7 @@ def main():
                               flush=True)
                 else:
                     if this_attempt == attempt:
-                        print(f'***No action for {this_xlsx_filename}',
+                        print(f'***No action for {this_xlsx_filename}, score: {this_score}',
                               flush=True)
 
         ##
@@ -349,6 +353,7 @@ def main():
                           f'upload_response is {do_upload_response.text}\n    {err}',
                           file=sys.stderr,
                           flush=True)
+                    #print('* upload failed', file=sys.stderr, flush=True)
                 do_upload = json.loads(do_upload_response.text)
                 if args.debug:
                     print(f'do_upload response: {do_upload}',

@@ -1,41 +1,41 @@
-#! /usr/bin/env bash
+#! /usr/bin/bash
 #
 # grade_assignment.sh
 #
-# Assumes directory contains downloaded canvas assignment pdf file with filenames of form
-#    lastnamefirstname_XXXXXX_question_######_#######_assignmentname.pdf
-# and .xlsx grading spreadsheets with filenames of form
-#    lastnamefirstname_XXXXXX:YYYYYY.xlsx
+# Assumes current directory contains .xlsx grading spreadsheets with filenames of form
+#    lastname-firstname-XXXXXX-YYYYYY.xlsx
 # where XXXXXX is the Canvas Student ID and
 # YYYYYY is the Canvas Course Shell ID
 #
-# successively an xlsx spreadsheet and the pdf file for a student.
-# When grading for a student is complete, close these files and press return in the shell
-# where grade_assignment.sh was run.
+# Use speed grader to access each student's record in turn
+# The xlsx spreadsheet are opened successivly for each student in the
+# Modify the student's .xlsx file to correctly reflect their grade.
+# When grading for a student is complete, close the xlsx file
+#  and proceed to the next student in speed grader
+# ***MAKE SURE YOU HAVE THE XLSX FILE FOR THE RIGHT STUDENTS***
 #
 # After grading an asignment use submit_assignment.py to submit grades to canvas
 #
 
-Opener=open
-#Opener=echo
 
-if [ `uname` == Linux ]; then Opener=xdg-open; fi
+Args=''
+if [ -z $WSL_DISTRO_NAME ]; then
+    if [ `uname` == Linux ]; then Opener=atril;
+    elif [ `uname` == Darwin ]; then Opener="open" Args="-Wn";
+    fi
+else Opener="cmd.exe /c start";
+fi
 
-#!!! Possibly delete commas from filenames for the benefit of WSL
 
-for x in *_*-*.xlsx; do
+for x in *-*.xlsx; do
     cmp $x rubric*.xlsx >/dev/null
     if [ $? != 0 ]; then continue; fi
     base=${x%-*}
-    base1=${base/_*/}    
-    base2=${base/*_/}
-    # get just 1 pdf file name in $pdf in case there are extras
-    pdf=`ls $base1*$base2*.pdf`
-    pdf=${pdf/pdf*/pdf}
-    #for pdf in `ls $base1*$base2*.pdf`; do break; done
-    if [ -e "$pdf" ]; then $Opener "$pdf"; \
-    else if [ -e "$base1*$base2*.docx" ]; then $Opener "$base1*$base2*.docx"; fi; fi
-    $Opener "$x"
-    read
+    base1=${base##*-}
+    #echo base1 is $base1
+    echo *$base1*.pdf
+    $Opener *$base1*.pdf
+    $Opener /wait $x
+    read -p "Next? " y
     done
     

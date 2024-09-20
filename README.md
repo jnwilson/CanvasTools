@@ -1,42 +1,82 @@
 # CanvasTools
 This repo contains tools to automate grading and submission of grades for student assignments associated with Canvas LMS courses.
+0. Things we hope you do only once:
 
-Parenthetical remarks have to do with my normal usage
-To grade assignments, you will need:
+   A. Place copy_rubric.py, grade_assignment.sh, and submit_assignment.py
+      into a directory in your PATH variable.
 
-    rollfile (generated from a Canvas full Grades csv file download))
-    rubric.xlsx (copied from rubric-###.xlsx into theassignment directory)
-    student assignments (download from Canvas Quiz with
-         "Download All Files" link)
-    API_Token (generate from Canvas Account Settings page -- look for
-        the big blue "+ New Access Token Button"
-   config-### (config file as specified in submit_assignments.py))
+   B. Create a grading_directory and cd into it.
 
-1.  Directory hierarchy:
+   C. Place your Canvas API_Token in the grading_directory
 
-      Main Grading Directory (contains API_Token, config files, rollfile)
-           Assignment-specific Subdirectory (contains downloaded
-             student files, rubric-###.xlsx)
+1. Things you do for each assignment you grade:
 
-2. What to do:
-    in Assignment-specific Subdirectory, run these commands:
-      copy_rubric.py --rubric rubric-###.xlsx --rollfile ../rollfile
-      grade_assignment.sh
+   A. Create an assignment subdirectory (e.g. Ex###) and cd to it
 
-3. To test upload
-    Create a test directory in the Assignment-specific Subdirectory
-    Copy one student.xlsx file into there
-    In that directory (!!!) run this command:
-      submit_assignments.py --config ../../config-### --token ../../API_Token
-   Use speed grader to see that that student's grade has been updated.
-   (It is best to set the Manual Posting setting for the course to hide the
-    grades from the student's view while uploading in case there are problems.)
+   B. Copy the config file and rubric xlsx file into that assignment
+      subdirectory and cd into it.
 
-4. To do full upload
-    cd into Assignment-Specific Subdirectory
-    In that directory (!!!) run this command:
-       submit_assignments.py --config ../config-### --token ../API_Token
+   C. Open the rubric xlsx file and make sure the position and size are
+      what you want them to be for grading the entire assignment.
+      If your using a Mac (and possibly other systems) every copy will
+      open in the same locaion with the same size.
+      Best to get it correct right off the bat.
 
-5. Check student grades (probably all of them) and if they match, Rejoice
+   D. Make sure you are cd'd to the assignment directory.
+   
+   D. Execute copy_rubric.py
 
-6. Unhide the assignment grades.
+   E. Open a web browser.
+      Navigate to the Canvas course shell and get to the Assignment page for
+      the assignment you are grading and click the "Download Submissions"
+      link on the right side of the page.
+      After the submissions zip file downloads, unzip it in your local
+      assignment directory.
+
+      Execute grade_assignment.sh
+
+      Now, for each assignment, click to open the student's pdf submission.
+      Verify that the name of the xlsx file matches the student's name.
+      Fill out the xlsx file appropriately.
+      Save the xlsx file and *QUIT* Excel.
+        (On a Mac, that means using Cmd-Q.
+         If you use Cmd-W to just close the window, the script will not
+     open the next file.)
+
+      I have tested the grade_assignment.sh script on Mac.
+      I think it probably works on Linux.
+      It works in WSL on Windows.
+      If you fix it to work somewhere else, tell me and I'll update it.
+
+   F. When you've done that for every student, execute
+
+      submit_assignment.sh
+
+      ***NOTE*** You may want to test that in a subdirectory that has
+      just a single student's xlsx file in it.
+      It posts comments to each student's assignment.
+      If you did something wrong and need to redo this, you will
+      have to delete the comments that were uploaded by hand.
+      I do not know of a way to remove those comments with the API.
+      If you find such a way and create a script to do it properly,
+      I'll include that in these procedures.
+
+      flags:
+      -n: Do a dry run--Don't actually upload the comments but tell
+          each student's score that would be uploaded
+      -debug: Provide whatever ridiculous debug messages I was using
+          when I debugged this most recently.
+
+
+Tips:
+
+0. Open your pdf reader on a document and open the rubric xlsx file.
+   Size and position them for convenient grading before you get started
+   and before you copy the rubric.
+   This will help you avoid having to resize windows every time to start
+   grading a new assignment.
+
+1. If you are using Acrobat reader on Windows and the All Tools pane
+   is on the left every time you start reading a document, this tells
+   how to modify that behavior:
+   https://helpx.adobe.com/acrobat/kb/disable-right-hand-pane-in-acrobat-reader.html#:~:text=To%20hide%20the%20All%20tools,Select%20OK.
