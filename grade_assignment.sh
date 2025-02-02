@@ -23,7 +23,7 @@ if [ -z $WSL_DISTRO_NAME ]; then
     if [ `uname` == Linux ]; then Opener=atril;
     elif [ `uname` == Darwin ]; then Opener="open" Args="-Wn";
     fi
-else Opener="cmd.exe /c start";
+else Opener="cmd.exe /c start \"\" ";
 fi
 
 
