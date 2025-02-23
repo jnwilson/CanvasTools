@@ -112,7 +112,7 @@ def main():
         assert not (len(rubric_file) > 1), f'Too many rubric files:{rubric_file}'
         rubric_file = rubric_file[0]
     else:
-        rubric_file = args.config
+        rubric_file = args.rubric
 
     ##
     # read Canvas token from file
